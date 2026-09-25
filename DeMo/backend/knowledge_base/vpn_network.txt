@@ -1,0 +1,22 @@
+VPN AND NETWORK SUPPORT
+
+VPN Access:
+Employees working remotely may need to connect to the company VPN to access internal systems and resources.
+
+VPN Connection Problems:
+If the VPN does not connect, employees should first verify that their internet connection is working. They should then restart the VPN application and try connecting again.
+
+VPN Credentials:
+Employees should use their company credentials when signing in to the VPN. Passwords must never be shared with another person.
+
+VPN Access Request:
+If an employee does not have VPN access, they should submit a VPN access request through the IT Service Desk portal. Approval may be required depending on the employee's role.
+
+Internet Connection Problems:
+Employees experiencing internet problems should first check whether other websites or applications can connect. They should restart their network connection if necessary.
+
+Internal System Access:
+Some internal company systems are accessible only when connected to the company network or VPN. Employees working remotely should connect to the VPN before attempting to access these systems.
+
+Persistent Network Problems:
+If basic troubleshooting does not resolve the issue, employees should create an IT Service Desk ticket and include the device name, location, error message, and approximate time when the problem occurred.

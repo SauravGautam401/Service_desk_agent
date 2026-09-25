@@ -1,0 +1,19 @@
+EMAIL SUPPORT
+
+Email Not Working:
+If company email is not working, employees should first check their internet connection and verify that they are using the correct company account.
+
+Email Login Problems:
+If an employee cannot log in to company email, they should verify their username and password. If the account is locked, the employee should follow the account-unlock procedure or contact the IT Service Desk.
+
+Email Not Syncing:
+If new messages are not appearing, employees should check their internet connection and restart the email application. If the problem continues, the employee should contact the IT Service Desk.
+
+Email Storage:
+If the mailbox is full, the employee may be unable to send or receive new messages. The employee should remove unnecessary messages or contact the IT Service Desk if additional mailbox support is required.
+
+Suspicious Email:
+Employees should not click links or open attachments in suspicious emails. Suspicious messages should be reported to the appropriate security or IT support team.
+
+Email Access on New Device:
+Employees setting up company email on a new device may need to complete authentication and security verification. If setup fails, the employee should contact the IT Service Desk.

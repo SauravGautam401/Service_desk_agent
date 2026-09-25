@@ -1,0 +1,26 @@
+SOFTWARE ACCESS POLICY
+
+Employees can request access to approved company software through the IT Service Desk portal.
+
+Microsoft Office:
+Employees who need Microsoft Office should submit a Software Access request through the IT Service Desk portal. The request must include the employee name, department, software name, and business reason. Manager approval may be required before access is granted.
+
+Visual Studio Code:
+Visual Studio Code is an approved development tool. Employees can request installation through the IT Service Desk portal. The request should include the employee name, department, and reason for using the software.
+
+Python:
+Python can be installed on company-managed development machines when required for approved development or data-analysis work. Employees should submit a software installation request through the IT Service Desk.
+
+Unauthorized Software:
+Employees must not install unauthorized or unapproved software on company-managed devices. Software that requires administrative privileges should be requested through the IT Service Desk.
+
+Software Access Process:
+
+1. Open the IT Service Desk portal.
+2. Select Software Access or Software Installation.
+3. Enter the requested software name.
+4. Provide the business reason.
+5. Submit the request.
+6. Wait for approval if approval is required.
+
+If an employee is unsure whether software is approved, they should contact the IT Service Desk before installing it.

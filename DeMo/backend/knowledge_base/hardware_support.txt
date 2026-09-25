@@ -1,0 +1,22 @@
+HARDWARE SUPPORT
+
+Laptop Problems:
+Employees experiencing laptop problems should first restart the device and check whether the problem continues.
+
+Laptop Not Turning On:
+If a company laptop does not turn on, the employee should check whether the charger is connected correctly and whether the charging indicator is visible. If the laptop still does not start, an IT Service Desk ticket should be created.
+
+Slow Computer:
+If a computer becomes unusually slow, employees should restart the device and close unnecessary applications. If the problem continues, they should contact the IT Service Desk.
+
+Keyboard or Mouse Problems:
+Employees should check the physical connection or wireless connection of the keyboard or mouse. For wireless devices, they should also check the battery.
+
+External Monitor:
+If an external monitor is not displaying an image, employees should check the display cable and confirm that the correct input source is selected.
+
+Hardware Replacement:
+Hardware replacement should be requested through the IT Service Desk. Employees should provide the device name, asset number if available, description of the problem, and business impact.
+
+Damaged Equipment:
+Employees should report damaged company equipment to the IT Service Desk as soon as possible. They should not attempt to repair company hardware themselves.
