@@ -1,9 +1,7 @@
 def chunk_text(text, chunk_size=500, overlap=100):
 
     words = text.split()
-
     chunks = []
-
     current_chunk = []
     current_length = 0
 
@@ -17,8 +15,7 @@ def chunk_text(text, chunk_size=500, overlap=100):
                 " ".join(current_chunk)
             )
 
-            # Keep some words for overlap
-            overlap_words = current_chunk[-20:]
+            overlap_words = current_chunk[-100:]
 
             current_chunk = overlap_words + [word]
 
