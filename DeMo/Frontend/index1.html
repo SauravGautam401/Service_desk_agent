@@ -1,47 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Service Desk Agent</title>
-
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Desk Agent</title><link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+  <main id="loginScreen" class="login-wrap">
+    <section class="login-card">
+      <div class="brand-mark">SD</div><p class="eyebrow">INTERNAL IT SUPPORT</p>
+      <h1>Service Desk Agent</h1><p class="muted">Get help from your AI assistant or connect with the IT team.</p>
+      <form id="loginForm">
+        <label for="role">I am signing in as</label>
+        <select id="role"><option value="employee">Employee</option><option value="it">Technical Team (IT Support)</option></select>
+        <div id="employeeFields"><label for="personName">Your name</label><input id="personName" placeholder="e.g. Saurav Gautam" required>
+          <label for="personEmail">Work email</label><input id="personEmail" type="email" placeholder="you@company.com" required></div>
+        <div id="itFields" class="hidden"><label for="itName">IT team member name</label><input id="itName" placeholder="e.g. IT Support"></div>
+        <button class="primary full" type="submit">Continue <span>→</span></button>
+      </form>
+      <p class="login-note">Demo sign-in for the project prototype. Add real authentication before deployment.</p>
+    </section>
+  </main>
 
-    <div class="chat-container">
-
-        <div class="chat-header">
-            <h2>Service Desk Agent</h2>
-            <p>AI-powered IT Support</p>
-        </div>
-
-        <div class="chat-box" id="chatBox">
-
-            <div class="message bot-message">
-                Hello! 👋 How can I help you with your IT problem?
-            </div>
-        </div>
-
-        <div class="input-area">
-            <input
-                type="text"
-                id="userInput"
-                placeholder="Describe your IT problem..."
-            >
-
-            <button onclick="sendMessage()">
-                Send
-            </button>
-
-        </div>
-
-    </div>
-
-    <script src="script.js"></script>
-
-</body>
-</html>
-
+  <div id="appScreen" class="app-shell hidden">
+    <aside class="sidebar"><div class="sidebar-brand"><span class="brand-mark small">SD</span><div><strong>Service Desk</strong><small>AI Support Portal</small></div></div>
+      <div class="user-card"><div class="avatar" id="avatar">E</div><div><strong id="userNameLabel">Employee</strong><small id="userRoleLabel">Employee account</small></div></div>
+      <nav id="employeeNav"><button class="nav-item active" data-view="assistant">✦ <span>AI Assistant</span></button><button class="nav-item" data-view="myTickets">▤ <span>My Tickets</span><span id="ticketCount" class="nav-count">0</span></button></nav>
+      <nav id="itNav" class="hidden"><button class="nav-item active" data-view="itTickets">▤ <span>Ticket Queue</span></button></nav>
+      <div class="sidebar-bottom"><span class="online-dot"></span> Support portal online<button id="logoutBtn" class="logout">↪ Sign out</button></div>
+    </aside>
+    <main class="main-area"><header class="topbar"><div><p class="eyebrow" id="pageEyebrow">EMPLOYEE WORKSPACE</p><h2 id="pageTitle">AI Assistant</h2></div><div class="topbar-right"><span class="status-pill"><span class="online-dot"></span> System operational</span><div class="avatar small-avatar" id="topAvatar">E</div></div></header>
+      <section id="assistantView" class="view assistant-layout"><div class="assistant-intro"><div class="assistant-icon">✦</div><div><h3>How can I help you today?</h3><p>Describe your IT issue. I'll try to help before you raise a ticket.</p></div></div>
+        <div id="chatBox" class="chat-box"><div class="message bot-message"><div class="message-avatar">✦</div><div><strong>Service Desk Agent</strong><p>Hello! I can help with password resets, VPN, email, software access and other IT issues. What's going wrong?</p></div></div></div>
+        <div class="composer"><textarea id="userInput" rows="2" placeholder="Describe your IT problem..."></textarea><button id="sendBtn" class="primary send-btn">Send ↑</button><div class="composer-hint">AI responses can be imperfect. Avoid sharing passwords or sensitive information.</div></div>
+        <div class="escalation"><div><strong>Still need help?</strong><p>If the issue isn't resolved, create a ticket for the technical team.</p></div><button id="raiseTicketBtn" class="secondary">＋ Raise a ticket</button></div>
+      </section>
+      <section id="myTicketsView" class="view hidden"><div class="section-heading"><div><h3>Your support requests</h3><p>Follow the status and replies from your IT team.</p></div><button id="newTicketBtn" class="primary">＋ New ticket</button></div><div id="myTicketsList" class="ticket-list"></div></section>
+      <section id="itTicketsView" class="view hidden"><div class="section-heading"><div><h3>Support queue</h3><p>Review employee issues and reply directly to the requester.</p></div><button id="refreshTicketsBtn" class="secondary">↻ Refresh</button></div><div class="filter-row"><span class="status-pill" id="queueSummary">Loading tickets...</span><span class="muted">Updates automatically</span></div><div id="itTicketsList" class="ticket-list"></div></section>
+    </main>
+  </div>
+  <div id="ticketModal" class="modal hidden"><div class="modal-card"><button id="closeModal" class="modal-close" aria-label="Close">×</button><p class="eyebrow">CONTACT IT SUPPORT</p><h2>Raise a ticket</h2><p class="muted modal-desc">Tell the technical team what happened and what you've already tried.</p><form id="ticketForm"><label for="ticketTitle">Issue title</label><input id="ticketTitle" required maxlength="180" placeholder="e.g. VPN won't connect"><label for="ticketDescription">Describe the issue</label><textarea id="ticketDescription" required rows="5" placeholder="Include any error message and what you tried..."></textarea><div class="modal-actions"><button type="button" id="cancelTicket" class="secondary">Cancel</button><button type="submit" class="primary">Submit ticket</button></div></form></div></div>
+  <div id="toast" class="toast hidden"></div>
+  <script src="script.js"></script>
+</body></html>
