@@ -53,6 +53,38 @@ function showView(view) {
   if (view !== 'assistant') loadTickets();
 }
 
+// ---------- Chat: markdown, streaming, sources ----------
+const sessionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+let chatBusy = false;
+if (window.marked) marked.setOptions({ gfm: true, breaks: true });
+
+function scrollChat() { const box = $('chatBox'); box.scrollTop = box.scrollHeight; }
+
+function renderMarkdown(el, md, final = false) {
+  if (window.marked && window.DOMPurify) {
+    el.innerHTML = DOMPurify.sanitize(marked.parse(md));
+    if (final) enhanceCode(el);
+  } else {
+    el.textContent = md; // CDN blocked/offline: still readable
+  }
+}
+
+function enhanceCode(root) {
+  root.querySelectorAll('pre code').forEach(code => {
+    if (window.hljs) hljs.highlightElement(code);
+    const pre = code.parentElement;
+    if (pre.querySelector('.copy-btn')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'copy-btn'; btn.textContent = 'Copy';
+    btn.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(code.innerText); btn.textContent = 'Copied ✓'; }
+      catch { btn.textContent = 'Press Ctrl+C'; }
+      setTimeout(() => (btn.textContent = 'Copy'), 1500);
+    });
+    pre.appendChild(btn);
+  });
+}
+
 function addChatMessage(text, role) {
   const wrap = document.createElement('div');
   wrap.className = `message ${role === 'user' ? 'user-message' : 'bot-message'}`;
@@ -62,22 +94,104 @@ function addChatMessage(text, role) {
   const body = document.createElement('div');
   const label = document.createElement('strong'); label.textContent = role === 'user' ? 'You' : 'Service Desk Agent';
   const p = document.createElement('p'); p.textContent = text;
-  body.append(label, p); wrap.appendChild(body); $('chatBox').appendChild(wrap); $('chatBox').scrollTop = $('chatBox').scrollHeight;
+  body.append(label, p); wrap.appendChild(body); $('chatBox').appendChild(wrap); scrollChat();
 }
 
-async function sendMessage() {
-  const input = $('userInput'); const message = input.value.trim();
-  if (!message || !currentUser || currentUser.role !== 'employee') return;
-  addChatMessage(message, 'user'); input.value = ''; $('sendBtn').disabled = true; $('sendBtn').textContent = 'Thinking...';
-  try {
-    const res = await fetch(`${API}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Assistant request failed');
-    addChatMessage(data.response || 'I could not generate a response. You can raise a ticket for the IT team.', 'bot');
-  } catch (err) { addChatMessage(`I couldn't reach the assistant (${err.message}). You can still raise a ticket for IT support.`, 'bot'); }
-  finally { $('sendBtn').disabled = false; $('sendBtn').textContent = 'Send ↑'; }
+// Empty bot bubble with a "thinking" indicator; returns handles to fill it.
+function createBotMessage() {
+  const wrap = document.createElement('div'); wrap.className = 'message bot-message';
+  const icon = document.createElement('div'); icon.className = 'message-avatar'; icon.textContent = '✦';
+  const body = document.createElement('div');
+  const label = document.createElement('strong'); label.textContent = 'Service Desk Agent';
+  const md = document.createElement('div'); md.className = 'md typing';
+  md.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
+  body.append(label, md); wrap.append(icon, body); $('chatBox').appendChild(wrap); scrollChat();
+  return { md, body };
 }
-$('sendBtn').addEventListener('click', sendMessage);
+
+// Smooth typewriter: tokens arrive in bursts, characters are revealed per animation
+// frame, speeding up automatically when the backlog grows.
+function createTypewriter(el) {
+  let target = '', shown = 0, running = false, finished = false, started = false, resolveDone;
+  const done = new Promise(r => (resolveDone = r));
+  function tick() {
+    const backlog = target.length - shown;
+    if (backlog > 0) {
+      shown += Math.max(1, Math.ceil(backlog / 14));
+      renderMarkdown(el, target.slice(0, shown));
+      scrollChat();
+      requestAnimationFrame(tick);
+    } else if (finished) {
+      running = false; el.classList.remove('typing');
+      renderMarkdown(el, target, true); scrollChat(); resolveDone();
+    } else { running = false; }
+  }
+  const kick = () => { if (!running) { running = true; requestAnimationFrame(tick); } };
+  return {
+    push(text) { if (!started) { started = true; el.innerHTML = ''; } target += text; kick(); },
+    finish() { finished = true; kick(); },
+    get text() { return target; },
+    done,
+  };
+}
+
+function renderSources(body, sources) {
+  if (!sources || !sources.length) return;
+  const row = document.createElement('div'); row.className = 'sources';
+  sources.forEach(name => {
+    const badge = document.createElement('span'); badge.className = 'source-badge';
+    badge.textContent = `📄 Source: ${name}`; row.appendChild(badge);
+  });
+  body.appendChild(row); scrollChat();
+}
+
+async function streamChat(message, bot) {
+  const tw = createTypewriter(bot.md);
+  let sources = [];
+  const res = await fetch(`${API}/chat/stream`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, session_id: sessionId, user_name: currentUser.name, user_email: currentUser.email }),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.detail || `HTTP ${res.status}`); }
+  const reader = res.body.getReader(); const decoder = new TextDecoder(); let buf = '';
+  while (true) {
+    const { value, done } = await reader.read(); if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n\n')) !== -1) {
+      const frame = buf.slice(0, i).trim(); buf = buf.slice(i + 2);
+      if (!frame.startsWith('data:')) continue;
+      const evt = JSON.parse(frame.slice(5));
+      if (evt.type === 'token') tw.push(evt.text);
+      else if (evt.type === 'done') sources = evt.sources || [];
+      else if (evt.type === 'error') throw new Error(evt.detail);
+    }
+  }
+  if (!tw.text.trim()) tw.push('I could not generate a response. You can raise a ticket for the IT team.');
+  tw.finish(); await tw.done;
+  renderSources(bot.body, sources);
+}
+
+async function sendMessage(preset) {
+  const input = $('userInput');
+  const message = (typeof preset === 'string' ? preset : input.value).trim();
+  if (!message || chatBusy || !currentUser || currentUser.role !== 'employee') return;
+  chatBusy = true;
+  addChatMessage(message, 'user'); input.value = '';
+  $('sendBtn').disabled = true; $('sendBtn').textContent = 'Thinking...';
+  document.querySelectorAll('.chip').forEach(c => (c.disabled = true));
+  const bot = createBotMessage();
+  try { await streamChat(message, bot); }
+  catch (err) {
+    bot.md.classList.remove('typing');
+    bot.md.textContent = `I couldn't reach the assistant (${err.message}). You can still raise a ticket for IT support.`;
+  } finally {
+    chatBusy = false; $('sendBtn').disabled = false; $('sendBtn').textContent = 'Send ↑';
+    document.querySelectorAll('.chip').forEach(c => (c.disabled = false));
+  }
+}
+$('sendBtn').addEventListener('click', () => sendMessage());
+$('quickChips').addEventListener('click', e => { const chip = e.target.closest('.chip'); if (chip) sendMessage(chip.dataset.prompt); });
 $('userInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
 function openTicketModal() {

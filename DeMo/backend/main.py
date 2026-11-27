@@ -1,5 +1,7 @@
-import os
+import json
+import logging
 import sqlite3
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -8,11 +10,12 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.rag.service import ask_rag
+from app.rag.service import ask_rag, stream_rag
 
+log = logging.getLogger("service_desk")
 app = FastAPI(title="Service Desk Agent API")
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = (BASE_DIR / ".." / "Frontend").resolve()
@@ -67,13 +70,41 @@ def init_db():
             created_at TEXT NOT NULL,
             FOREIGN KEY(ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
         )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS chat_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT,
+            user_name TEXT,
+            user_email TEXT,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            sources TEXT NOT NULL DEFAULT '[]',
+            response_ms INTEGER,
+            created_at TEXT NOT NULL
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_logs_email ON chat_logs(user_email, id)")
 
 
 init_db()
 
 
+def log_chat(req, answer, sources, started):
+    """Persist one Q&A turn. Never lets a logging error break the chat."""
+    try:
+        with db_session() as conn:
+            conn.execute(
+                "INSERT INTO chat_logs (session_id, user_name, user_email, question, answer, sources, response_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (req.session_id, req.user_name, (req.user_email or "").lower() or None, req.message.strip(),
+                 answer, json.dumps(sources), int((time.monotonic() - started) * 1000), now()),
+            )
+    except Exception:
+        log.exception("Could not write chat log")
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=5000)
+    session_id: Optional[str] = Field(default=None, max_length=64)
+    user_name: Optional[str] = Field(default=None, max_length=120)
+    user_email: Optional[str] = Field(default=None, max_length=254)
 
 
 class TicketCreate(BaseModel):
@@ -109,11 +140,57 @@ def health():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
+    started = time.monotonic()
     try:
-        return {"response": ask_rag(request.message)}
+        result = ask_rag(request.message)
     except Exception as exc:
         # Keep the ticketing portal usable even if the local RAG model is unavailable.
         raise HTTPException(status_code=500, detail=f"The AI assistant could not answer right now: {exc}")
+    log_chat(request, result["response"], result["sources"], started)
+    return result
+
+
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+@app.post("/chat/stream")
+def chat_stream(request: ChatRequest):
+    """Server-Sent Events: {"type":"token","text":...} ... {"type":"done","sources":[...]}"""
+    def events():
+        started = time.monotonic()
+        parts, sources = [], []
+        try:
+            for kind, data in stream_rag(request.message):
+                if kind == "token":
+                    parts.append(data)
+                    yield _sse({"type": "token", "text": data})
+                else:
+                    sources = data["sources"]
+                    yield _sse({"type": "done", "sources": sources})
+        except Exception as exc:
+            log.exception("Streaming chat failed")
+            yield _sse({"type": "error", "detail": f"The AI assistant could not answer right now: {exc}"})
+        finally:
+            answer = "".join(parts).strip()
+            if answer:
+                log_chat(request, answer, sources, started)
+
+    return StreamingResponse(
+        events(), media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/chat/logs")
+def chat_logs(email: Optional[str] = None, limit: int = Query(50, ge=1, le=500)):
+    """Recent logged conversations (optionally for one employee). Demo endpoint: add auth before deploying."""
+    with db_session() as conn:
+        if email:
+            rows = conn.execute("SELECT * FROM chat_logs WHERE user_email=? ORDER BY id DESC LIMIT ?", (email.strip().lower(), limit)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM chat_logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    return [{**dict(r), "sources": json.loads(r["sources"])} for r in rows]
 
 
 @app.post("/tickets", status_code=201)
