@@ -158,34 +158,3 @@ Open the frontend through the FastAPI server at
 http://127.0.0.1:8000/, rather than opening the HTML file directly.
 The frontend uses the same host for API requests.
 
-Security Notes
-
-Do not commit API keys, passwords, tokens, private configuration
-files, or virtual environments.
-
-Use test data rather than real employee information.
-
-Add proper authentication and authorization before deploying this
-application for real users.
-
-Future Improvements
-
-Improve the chatbot's conversational responses.
-
-Preserve unsent IT reply drafts during ticket-list refreshes.
-
-Add stronger authentication and role-based access control.
-
-Add ticket search, filtering, and automated tests.
-
-Add deployment instructions.
-
-Contributing
-
-Suggestions and improvements are welcome. Open an issue or submit a pull
-request.
-
-License
-
-Add a license file before allowing others to reuse or distribute this
-project. Without a license, standard copyright restrictions apply.
